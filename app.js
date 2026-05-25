@@ -38,7 +38,7 @@ function generarFormularioJugadores() {
         <h3>Jugador ${i}</h3>
 
         <label>Nombre</label>
-        <input type="text" id="nombreJugador${i}" placeholder="Ej: Bauti">
+        <input type="text" id="nombreJugador${i}" placeholder="Ej: Martín">
 
         <label>Selección</label>
         <select id="seleccionJugador${i}">
