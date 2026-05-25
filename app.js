@@ -124,23 +124,27 @@ function iniciarJuego() {
 function armarEquiposTorneo() {
   equiposTorneo = [];
 
-  jugadores.forEach(jugador => {
-    equiposTorneo.push({
+  const equiposHumanos = jugadores.map(jugador => {
+    return {
       nombre: jugador.seleccion,
-      bandera: jugador.bandera
-    });
+      bandera: jugador.bandera,
+      humano: true
+    };
   });
 
-  seleccionesBase.forEach(seleccion => {
-    const yaEsta = equiposTorneo.some(equipo => equipo.nombre === seleccion.nombre);
-
-    if (!yaEsta && equiposTorneo.length < 16) {
-      equiposTorneo.push({
+  const equiposCPU = seleccionesBase
+    .filter(seleccion => {
+      return !equiposHumanos.some(equipo => equipo.nombre === seleccion.nombre);
+    })
+    .map(seleccion => {
+      return {
         nombre: seleccion.nombre,
-        bandera: seleccion.bandera
-      });
-    }
-  });
+        bandera: seleccion.bandera,
+        humano: false
+      };
+    });
+
+  equiposTorneo = [...equiposHumanos, ...equiposCPU].slice(0, 16);
 }
 
 function armarGrupos() {
