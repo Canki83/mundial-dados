@@ -160,7 +160,6 @@ function tirarDado() {
   }
 
   const partido = fixture[partidoActual];
-
   const dado = Math.floor(Math.random() * 6) + 1;
   let resultado = "";
 
