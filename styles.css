@@ -466,4 +466,40 @@ button:disabled {
   color: #fde68a !important;
   font-weight: bold;
 }
+  /* PANTALLA DE REGLAS Y PROBABILIDAD */
+
+.info-teorica {
+  margin-top: 20px;
+  text-align: left;
+  line-height: 1.55;
+  color: #e0f2fe;
+}
+
+.info-teorica h3 {
+  margin-top: 22px;
+  margin-bottom: 8px;
+  color: #fde68a;
+}
+
+.info-teorica p {
+  margin: 10px 0;
+}
+
+.presentado {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fef9c3;
+  text-align: center;
+}
+
+.formula {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fde68a;
+  font-weight: bold;
+  text-align: center;
+}
 }
