@@ -149,26 +149,47 @@ function armarEquiposTorneo() {
 
 function armarGrupos() {
   const nombresGrupos = ["Grupo A", "Grupo B", "Grupo C", "Grupo D"];
-  grupos = [];
 
-  for (let i = 0; i < 4; i++) {
-    const equiposGrupo = equiposTorneo.slice(i * 4, i * 4 + 4).map(equipo => {
-      return {
+  grupos = nombresGrupos.map(nombre => {
+    return {
+      nombre,
+      equipos: [],
+      ordenFinal: []
+    };
+  });
+
+  const equiposHumanos = equiposTorneo.filter(equipo => equipo.humano);
+  const equiposCPU = equiposTorneo.filter(equipo => !equipo.humano);
+
+  // Reparte primero los equipos humanos: uno por grupo, en lo posible.
+  equiposHumanos.forEach((equipo, index) => {
+    const grupoIndex = index % grupos.length;
+
+    grupos[grupoIndex].equipos.push({
+      ...equipo,
+      pj: 0,
+      g: 0,
+      e: 0,
+      p: 0,
+      pts: 0
+    });
+  });
+
+  // Completa cada grupo con equipos CPU hasta llegar a 4 equipos.
+  grupos.forEach(grupo => {
+    while (grupo.equipos.length < 4 && equiposCPU.length > 0) {
+      const equipo = equiposCPU.shift();
+
+      grupo.equipos.push({
         ...equipo,
         pj: 0,
         g: 0,
         e: 0,
         p: 0,
         pts: 0
-      };
-    });
-
-    grupos.push({
-      nombre: nombresGrupos[i],
-      equipos: equiposGrupo,
-      ordenFinal: []
-    });
-  }
+      });
+    }
+  });
 }
 
 function armarFixtureGrupos() {
