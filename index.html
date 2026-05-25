@@ -17,7 +17,7 @@
       </div>
 
       <p class="subtitulo">
-        Elegí jugadores, selecciones y simulá partidos con dados.
+        Simulá un Mundial con dados, grupos, eliminatorias y penales.
       </p>
 
       <section id="pantalla-inicio">
@@ -41,7 +41,7 @@
         <div id="resumenJugadores" class="resumen-jugadores"></div>
 
         <div class="info-partido">
-          <p id="numeroPartido">Partido 1 de 6</p>
+          <p id="numeroPartido">Partido 1</p>
           <h2 id="nombreGrupo">Grupo A</h2>
         </div>
 
@@ -70,31 +70,23 @@
           Siguiente partido
         </button>
 
-        <button id="botonFinalPrueba" class="boton-secundario hidden" onclick="iniciarFinalPrueba()">
-          Jugar final de prueba
+        <button id="botonNuevoTorneo" class="boton-secundario hidden" onclick="volverInicio()">
+          Nuevo torneo
         </button>
 
-        <h2 class="seccion-titulo">Tabla de posiciones</h2>
+        <section id="panelTablas">
+          <h2 class="seccion-titulo">Tablas de grupos</h2>
+          <div id="tablasGrupos"></div>
+        </section>
 
-        <div class="tabla-contenedor">
-          <table>
-            <thead>
-              <tr>
-                <th>Equipo</th>
-                <th>PJ</th>
-                <th>G</th>
-                <th>E</th>
-                <th>P</th>
-                <th>Pts</th>
-              </tr>
-            </thead>
-            <tbody id="tablaPosiciones"></tbody>
-          </table>
-        </div>
+        <section id="panelClasificados" class="hidden">
+          <h2 class="seccion-titulo">Clasificados</h2>
+          <div id="clasificados"></div>
+        </section>
 
         <div class="reglas">
           <p><strong>Grupo:</strong> 1-2 gana A / 3-4 empate / 5-6 gana B</p>
-          <p><strong>Desempate en puntos:</strong> dado más alto</p>
+          <p><strong>Empate en puntos:</strong> desempate con dado más alto</p>
           <p><strong>Mata-mata:</strong> si empatan, penales</p>
           <p><strong>Penales:</strong> par = gol / impar = errado</p>
         </div>
