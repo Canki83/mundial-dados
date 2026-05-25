@@ -1010,3 +1010,17 @@ function volverInicio() {
   document.getElementById("pantalla-inicio").classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+function mostrarInfo() {
+  document.getElementById("pantalla-inicio").classList.add("hidden");
+  document.getElementById("pantalla-juego").classList.add("hidden");
+  document.getElementById("pantalla-info").classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function ocultarInfo() {
+  document.getElementById("pantalla-info").classList.add("hidden");
+  document.getElementById("pantalla-inicio").classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
