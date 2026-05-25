@@ -19,6 +19,8 @@ let equiposDelGrupo = [];
 let tabla = {};
 let partidoActual = 0;
 let partidoYaJugado = false;
+let ordenFinal = [];
+let grupoFinalizado = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   generarFormularioJugadores();
@@ -40,7 +42,7 @@ function generarFormularioJugadores() {
         <h3>Jugador ${i}</h3>
 
         <label>Nombre</label>
-        <input type="text" id="nombreJugador${i}" placeholder="Ej: Martín">
+        <input type="text" id="nombreJugador${i}" placeholder="Ej: Bauti">
 
         <label>Selección</label>
         <select id="seleccionJugador${i}">
@@ -54,6 +56,8 @@ function generarFormularioJugadores() {
 function iniciarJuego() {
   const cantidad = Number(document.getElementById("cantidadJugadores").value);
   jugadores = [];
+  ordenFinal = [];
+  grupoFinalizado = false;
 
   for (let i = 1; i <= cantidad; i++) {
     const nombre = document.getElementById(`nombreJugador${i}`).value.trim();
@@ -133,7 +137,8 @@ function inicializarTabla() {
       g: 0,
       e: 0,
       p: 0,
-      pts: 0
+      pts: 0,
+      desempate: "-"
     };
   });
 }
@@ -228,14 +233,17 @@ function registrarEmpate(equipoA, equipoB) {
 function mostrarTabla() {
   const cuerpoTabla = document.getElementById("tablaPosiciones");
 
-  const equiposOrdenados = Object.values(tabla).sort((a, b) => {
-    return b.pts - a.pts;
-  });
+  const equiposOrdenados = grupoFinalizado
+    ? ordenFinal
+    : Object.values(tabla).sort((a, b) => b.pts - a.pts);
 
-  cuerpoTabla.innerHTML = equiposOrdenados.map(equipo => {
+  cuerpoTabla.innerHTML = equiposOrdenados.map((equipo, index) => {
+    const clasificado = grupoFinalizado && index < 2 ? "clasificado" : "";
+    const marca = grupoFinalizado && index < 2 ? "✅ " : "";
+
     return `
-      <tr>
-        <td class="equipo-tabla">${equipo.bandera} ${equipo.nombre}</td>
+      <tr class="${clasificado}">
+        <td class="equipo-tabla">${marca}${equipo.bandera} ${equipo.nombre}</td>
         <td>${equipo.pj}</td>
         <td>${equipo.g}</td>
         <td>${equipo.e}</td>
@@ -250,16 +258,135 @@ function siguientePartido() {
   partidoActual++;
 
   if (partidoActual >= fixture.length) {
-    document.getElementById("numeroPartido").textContent = "Fin de la fase de prueba";
-    document.getElementById("nombreGrupo").textContent = "Grupo terminado";
-    document.getElementById("resultado").textContent = "Ya se jugaron todos los partidos.";
-    document.getElementById("dado").textContent = "🏆";
-    document.getElementById("botonTirar").classList.add("hidden");
-    document.getElementById("botonSiguiente").classList.add("hidden");
+    finalizarGrupo();
     return;
   }
 
   mostrarPartidoActual();
+}
+
+function finalizarGrupo() {
+  grupoFinalizado = true;
+
+  const resultadoDesempate = ordenarTablaConDesempatePorDado();
+
+  ordenFinal = resultadoDesempate.orden;
+
+  document.getElementById("numeroPartido").textContent = "Fin de la fase de grupos";
+  document.getElementById("nombreGrupo").textContent = "Grupo terminado";
+  document.getElementById("dado").textContent = "🏆";
+
+  if (resultadoDesempate.huboDesempate) {
+    document.getElementById("resultado").innerHTML =
+      "Tabla definida por puntos y desempate con dado.<br>" + resultadoDesempate.texto;
+  } else {
+    document.getElementById("resultado").textContent =
+      "Tabla definida por puntos. No hizo falta desempate.";
+  }
+
+  document.getElementById("botonTirar").classList.add("hidden");
+  document.getElementById("botonSiguiente").classList.add("hidden");
+
+  mostrarTabla();
+}
+
+function ordenarTablaConDesempatePorDado() {
+  const equipos = Object.values(tabla);
+  const gruposPorPuntos = agruparPor(equipos, equipo => equipo.pts);
+
+  const puntosOrdenados = Object.keys(gruposPorPuntos)
+    .map(Number)
+    .sort((a, b) => b - a);
+
+  let ordenFinalCalculado = [];
+  let huboDesempate = false;
+  let texto = "";
+
+  puntosOrdenados.forEach(puntos => {
+    const grupo = gruposPorPuntos[puntos];
+
+    if (grupo.length === 1) {
+      ordenFinalCalculado.push(grupo[0]);
+    } else {
+      huboDesempate = true;
+
+      const resultado = desempatarGrupoPorDado(grupo);
+
+      texto += `<br><strong>Empate en ${puntos} puntos:</strong> ${resultado.texto}`;
+
+      ordenFinalCalculado.push(...resultado.orden);
+    }
+  });
+
+  return {
+    orden: ordenFinalCalculado,
+    huboDesempate,
+    texto
+  };
+}
+
+function desempatarGrupoPorDado(equipos) {
+  let pendientes = [...equipos];
+  let orden = [];
+  let texto = "";
+
+  while (pendientes.length > 0) {
+    const tiradas = pendientes.map(equipo => {
+      return {
+        equipo,
+        dado: tirarDadoSimple()
+      };
+    });
+
+    texto += `<br>${tiradas.map(t => `${t.equipo.bandera} ${t.equipo.nombre}: 🎲 ${t.dado}`).join(" | ")}`;
+
+    const gruposPorDado = agruparPor(tiradas, item => item.dado);
+    const dadosOrdenados = Object.keys(gruposPorDado)
+      .map(Number)
+      .sort((a, b) => b - a);
+
+    pendientes = [];
+
+    dadosOrdenados.forEach(dado => {
+      const grupo = gruposPorDado[dado];
+
+      if (grupo.length === 1) {
+        grupo[0].equipo.desempate = dado;
+        orden.push(grupo[0].equipo);
+      } else {
+        pendientes.push(...grupo.map(item => item.equipo));
+      }
+    });
+
+    if (pendientes.length > 0) {
+      texto += `<br>Hubo nuevo empate. Tiran de nuevo: ${pendientes.map(e => `${e.bandera} ${e.nombre}`).join(", ")}`;
+    }
+  }
+
+  return {
+    orden,
+    texto
+  };
+}
+
+function tirarDadoSimple() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+function agruparPor(lista, obtenerClave) {
+  const grupos = {};
+
+  lista.forEach(item => {
+    const clave = obtenerClave(item);
+
+    if (!grupos[clave]) {
+      grupos[clave] = [];
+    }
+
+    grupos[clave].push(item);
+  });
+
+  return grupos;
 }
 
 function volverInicio() {
