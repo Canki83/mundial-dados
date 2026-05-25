@@ -1,6 +1,61 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  color: white;
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 28px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.titulo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+
+h1 {
+  font-size: 34px;
+  margin: 0;
+}
+
+.pelota,
+.dado {
+  font-size: 34px;
+}
+
+.subtitulo {
+  margin-top: 12px;
+  color: #dbeafe;
+}
+
 .hidden {
   display: none;
 }
+
+/* FORMULARIO DE INICIO */
 
 .formulario {
   margin-top: 24px;
@@ -39,6 +94,8 @@
   color: #fde68a;
 }
 
+/* JUGADORES */
+
 .seccion-titulo {
   margin-top: 24px;
   color: #fde68a;
@@ -72,6 +129,78 @@
   color: #dbeafe;
 }
 
+/* INFO DEL PARTIDO */
+
+.info-partido {
+  margin-top: 24px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.info-partido p {
+  margin: 0;
+  color: #dbeafe;
+  font-size: 14px;
+}
+
+.info-partido h2 {
+  margin: 6px 0 0;
+  color: #fde68a;
+}
+
+/* PARTIDO */
+
+.partido {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 28px 0;
+  gap: 12px;
+}
+
+.equipo {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 18px 10px;
+}
+
+.bandera {
+  font-size: 46px;
+}
+
+.equipo h2 {
+  margin: 10px 0 0;
+  font-size: 20px;
+}
+
+.versus {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fde68a;
+}
+
+/* BOTONES */
+
+button {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  background: #facc15;
+  color: #1f2937;
+  box-shadow: 0 8px 0 #ca8a04;
+}
+
+button:active {
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 #ca8a04;
+}
+
 .boton-secundario {
   margin-top: 18px;
   background: #e5e7eb;
@@ -81,4 +210,73 @@
 
 .boton-secundario:active {
   box-shadow: 0 4px 0 #9ca3af;
+}
+
+/* RESULTADO */
+
+.resultado {
+  margin-top: 24px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+#dado {
+  font-size: 42px;
+  margin: 0;
+}
+
+#resultado {
+  margin: 8px 0 0;
+  font-size: 26px;
+}
+
+/* REGLAS */
+
+.reglas {
+  margin-top: 20px;
+  font-size: 15px;
+  color: #e0f2fe;
+}
+
+.reglas p {
+  margin: 6px 0;
+}
+
+/* CELULAR */
+
+@media (max-width: 480px) {
+  .card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .pelota,
+  .dado {
+    font-size: 28px;
+  }
+
+  .partido {
+    gap: 8px;
+  }
+
+  .bandera {
+    font-size: 38px;
+  }
+
+  .equipo h2 {
+    font-size: 16px;
+  }
+
+  .versus {
+    font-size: 20px;
+  }
+
+  button {
+    font-size: 20px;
+  }
 }
