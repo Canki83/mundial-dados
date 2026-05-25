@@ -21,6 +21,8 @@ let partidoActual = 0;
 let partidoYaJugado = false;
 let ordenFinal = [];
 let grupoFinalizado = false;
+let modoJuego = "grupo";
+let finalPrueba = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   generarFormularioJugadores();
@@ -42,7 +44,7 @@ function generarFormularioJugadores() {
         <h3>Jugador ${i}</h3>
 
         <label>Nombre</label>
-        <input type="text" id="nombreJugador${i}" placeholder="Ej: Bauti">
+        <input type="text" id="nombreJugador${i}" placeholder="Ej: Martín">
 
         <label>Selección</label>
         <select id="seleccionJugador${i}">
@@ -58,6 +60,10 @@ function iniciarJuego() {
   jugadores = [];
   ordenFinal = [];
   grupoFinalizado = false;
+  modoJuego = "grupo";
+  finalPrueba = null;
+
+  document.getElementById("botonFinalPrueba").classList.add("hidden");
 
   for (let i = 1; i <= cantidad; i++) {
     const nombre = document.getElementById(`nombreJugador${i}`).value.trim();
@@ -137,8 +143,7 @@ function inicializarTabla() {
       g: 0,
       e: 0,
       p: 0,
-      pts: 0,
-      desempate: "-"
+      pts: 0
     };
   });
 }
@@ -181,12 +186,17 @@ function mostrarPartidoActual() {
 }
 
 function tirarDado() {
+  if (modoJuego === "final") {
+    tirarDadoFinal();
+    return;
+  }
+
   if (partidoYaJugado) {
     return;
   }
 
   const partido = fixture[partidoActual];
-  const dado = Math.floor(Math.random() * 6) + 1;
+  const dado = tirarDadoSimple();
   let resultado = "";
 
   if (dado <= 2) {
@@ -286,6 +296,7 @@ function finalizarGrupo() {
 
   document.getElementById("botonTirar").classList.add("hidden");
   document.getElementById("botonSiguiente").classList.add("hidden");
+  document.getElementById("botonFinalPrueba").classList.remove("hidden");
 
   mostrarTabla();
 }
@@ -309,10 +320,10 @@ function ordenarTablaConDesempatePorDado() {
       ordenFinalCalculado.push(grupo[0]);
     } else {
       huboDesempate = true;
-
       const resultado = desempatarGrupoPorDado(grupo);
 
-      texto += `<br><strong>Empate en ${puntos} puntos:</strong> ${resultado.texto}`;
+      texto += `<br><strong>Empate en ${puntos} puntos:</strong>`;
+      texto += resultado.texto;
 
       ordenFinalCalculado.push(...resultado.orden);
     }
@@ -326,47 +337,220 @@ function ordenarTablaConDesempatePorDado() {
 }
 
 function desempatarGrupoPorDado(equipos) {
-  let pendientes = [...equipos];
+  const resultado = desempatarEquiposConDado(equipos);
+
+  return {
+    orden: resultado.orden,
+    texto: resultado.texto
+  };
+}
+
+function desempatarEquiposConDado(equipos) {
+  const tiradas = equipos.map(equipo => {
+    return {
+      equipo,
+      dado: tirarDadoSimple()
+    };
+  });
+
+  let texto = `<br>${tiradas.map(t => `${t.equipo.bandera} ${t.equipo.nombre}: 🎲 ${t.dado}`).join(" | ")}`;
+
+  const gruposPorDado = agruparPor(tiradas, item => item.dado);
+  const dadosOrdenados = Object.keys(gruposPorDado)
+    .map(Number)
+    .sort((a, b) => b - a);
+
   let orden = [];
-  let texto = "";
 
-  while (pendientes.length > 0) {
-    const tiradas = pendientes.map(equipo => {
-      return {
-        equipo,
-        dado: tirarDadoSimple()
-      };
-    });
+  dadosOrdenados.forEach(dado => {
+    const grupo = gruposPorDado[dado];
 
-    texto += `<br>${tiradas.map(t => `${t.equipo.bandera} ${t.equipo.nombre}: 🎲 ${t.dado}`).join(" | ")}`;
+    if (grupo.length === 1) {
+      orden.push(grupo[0].equipo);
+    } else {
+      const equiposEmpatados = grupo.map(item => item.equipo);
 
-    const gruposPorDado = agruparPor(tiradas, item => item.dado);
-    const dadosOrdenados = Object.keys(gruposPorDado)
-      .map(Number)
-      .sort((a, b) => b - a);
+      texto += `<br>Hubo nuevo empate. Tiran de nuevo: ${equiposEmpatados.map(e => `${e.bandera} ${e.nombre}`).join(", ")}`;
 
-    pendientes = [];
+      const desempate = desempatarEquiposConDado(equiposEmpatados);
 
-    dadosOrdenados.forEach(dado => {
-      const grupo = gruposPorDado[dado];
-
-      if (grupo.length === 1) {
-        grupo[0].equipo.desempate = dado;
-        orden.push(grupo[0].equipo);
-      } else {
-        pendientes.push(...grupo.map(item => item.equipo));
-      }
-    });
-
-    if (pendientes.length > 0) {
-      texto += `<br>Hubo nuevo empate. Tiran de nuevo: ${pendientes.map(e => `${e.bandera} ${e.nombre}`).join(", ")}`;
+      texto += desempate.texto;
+      orden.push(...desempate.orden);
     }
-  }
+  });
 
   return {
     orden,
     texto
   };
+}
+
+function iniciarFinalPrueba() {
+  if (!grupoFinalizado || ordenFinal.length < 2) {
+    alert("Primero tiene que terminar la fase de grupos.");
+    return;
+  }
+
+  modoJuego = "final";
+  partidoYaJugado = false;
+
+  finalPrueba = {
+    equipoA: ordenFinal[0],
+    equipoB: ordenFinal[1]
+  };
+
+  document.getElementById("numeroPartido").textContent = "Final de prueba";
+  document.getElementById("nombreGrupo").textContent = "Mata-mata";
+
+  document.getElementById("banderaA").textContent = finalPrueba.equipoA.bandera;
+  document.getElementById("equipoA").textContent = finalPrueba.equipoA.nombre;
+
+  document.getElementById("banderaB").textContent = finalPrueba.equipoB.bandera;
+  document.getElementById("equipoB").textContent = finalPrueba.equipoB.nombre;
+
+  document.getElementById("dado").textContent = "🎲";
+  document.getElementById("resultado").textContent = "Final lista. Tirar dado para definir.";
+
+  document.getElementById("botonTirar").classList.remove("hidden");
+  document.getElementById("botonSiguiente").classList.add("hidden");
+  document.getElementById("botonFinalPrueba").classList.add("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function tirarDadoFinal() {
+  if (partidoYaJugado) {
+    return;
+  }
+
+  const dado = tirarDadoSimple();
+  let ganador = null;
+  let htmlResultado = "";
+
+  if (dado <= 2) {
+    ganador = finalPrueba.equipoA;
+    htmlResultado = `
+      🎲 Salió ${dado}<br>
+      Ganó ${ganador.bandera} ${ganador.nombre}<br>
+      <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
+    `;
+  } else if (dado <= 4) {
+    const penales = resolverPenales(finalPrueba.equipoA, finalPrueba.equipoB);
+    ganador = penales.ganador;
+
+    htmlResultado = `
+      🎲 Salió ${dado}<br>
+      Empate en la final. Definen por penales.
+      ${penales.html}
+      <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
+    `;
+  } else {
+    ganador = finalPrueba.equipoB;
+    htmlResultado = `
+      🎲 Salió ${dado}<br>
+      Ganó ${ganador.bandera} ${ganador.nombre}<br>
+      <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
+    `;
+  }
+
+  document.getElementById("dado").textContent = "🏆";
+  document.getElementById("resultado").innerHTML = htmlResultado;
+  document.getElementById("botonTirar").classList.add("hidden");
+
+  partidoYaJugado = true;
+}
+
+function resolverPenales(equipoA, equipoB) {
+  const tirosA = patearCincoPenales();
+  const tirosB = patearCincoPenales();
+
+  let golesA = contarGoles(tirosA);
+  let golesB = contarGoles(tirosB);
+
+  let html = `
+    <div class="penales-box">
+      <p><strong>${equipoA.bandera} ${equipoA.nombre}</strong>: ${formatearPenales(tirosA)} = ${golesA}</p>
+      <p><strong>${equipoB.bandera} ${equipoB.nombre}</strong>: ${formatearPenales(tirosB)} = ${golesB}</p>
+  `;
+
+  if (golesA > golesB) {
+    html += `</div>`;
+    return { ganador: equipoA, html };
+  }
+
+  if (golesB > golesA) {
+    html += `</div>`;
+    return { ganador: equipoB, html };
+  }
+
+  html += `<p>Empataron en penales. Van a muerte súbita.</p>`;
+
+  const muerteSubita = resolverMuerteSubita(equipoA, equipoB);
+
+  html += muerteSubita.html;
+  html += `</div>`;
+
+  return {
+    ganador: muerteSubita.ganador,
+    html
+  };
+}
+
+function patearCincoPenales() {
+  const tiros = [];
+
+  for (let i = 0; i < 5; i++) {
+    const dado = tirarDadoSimple();
+
+    tiros.push({
+      dado,
+      gol: dado % 2 === 0
+    });
+  }
+
+  return tiros;
+}
+
+function contarGoles(tiros) {
+  return tiros.filter(tiro => tiro.gol).length;
+}
+
+function formatearPenales(tiros) {
+  return tiros.map(tiro => {
+    return tiro.gol ? `⚽(${tiro.dado})` : `❌(${tiro.dado})`;
+  }).join(" ");
+}
+
+function resolverMuerteSubita(equipoA, equipoB) {
+  let ronda = 1;
+  let html = "";
+
+  while (true) {
+    const dadoA = tirarDadoSimple();
+    const dadoB = tirarDadoSimple();
+
+    const golA = dadoA % 2 === 0;
+    const golB = dadoB % 2 === 0;
+
+    html += `
+      <p>
+        Muerte súbita ${ronda}:
+        ${equipoA.bandera} ${golA ? "⚽" : "❌"}(${dadoA})
+        |
+        ${equipoB.bandera} ${golB ? "⚽" : "❌"}(${dadoB})
+      </p>
+    `;
+
+    if (golA && !golB) {
+      return { ganador: equipoA, html };
+    }
+
+    if (golB && !golA) {
+      return { ganador: equipoB, html };
+    }
+
+    ronda++;
+  }
 }
 
 function tirarDadoSimple() {
