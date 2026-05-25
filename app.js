@@ -14,6 +14,9 @@ const selecciones = [
 ];
 
 let jugadores = [];
+let fixture = [];
+let partidoActual = 0;
+let partidoYaJugado = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   generarFormularioJugadores();
@@ -75,10 +78,43 @@ function iniciarJuego() {
     return;
   }
 
+  armarFixtureDePrueba();
+  partidoActual = 0;
+  partidoYaJugado = false;
+
   mostrarResumenJugadores();
+  mostrarPartidoActual();
 
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
+}
+
+function armarFixtureDePrueba() {
+  const equiposDelGrupo = [];
+
+  jugadores.forEach(jugador => {
+    equiposDelGrupo.push({
+      nombre: jugador.seleccion,
+      bandera: jugador.bandera
+    });
+  });
+
+  selecciones.forEach(seleccion => {
+    const yaEsta = equiposDelGrupo.some(equipo => equipo.nombre === seleccion.nombre);
+
+    if (!yaEsta && equiposDelGrupo.length < 4) {
+      equiposDelGrupo.push(seleccion);
+    }
+  });
+
+  fixture = [
+    { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[1] },
+    { grupo: "Grupo A", equipoA: equiposDelGrupo[2], equipoB: equiposDelGrupo[3] },
+    { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[2] },
+    { grupo: "Grupo A", equipoA: equiposDelGrupo[1], equipoB: equiposDelGrupo[3] },
+    { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[3] },
+    { grupo: "Grupo A", equipoA: equiposDelGrupo[1], equipoB: equiposDelGrupo[2] }
+  ];
 }
 
 function mostrarResumenJugadores() {
@@ -95,23 +131,73 @@ function mostrarResumenJugadores() {
   }).join("");
 }
 
-function volverInicio() {
-  document.getElementById("pantalla-juego").classList.add("hidden");
-  document.getElementById("pantalla-inicio").classList.remove("hidden");
+function mostrarPartidoActual() {
+  const partido = fixture[partidoActual];
+
+  document.getElementById("numeroPartido").textContent =
+    `Partido ${partidoActual + 1} de ${fixture.length}`;
+
+  document.getElementById("nombreGrupo").textContent = partido.grupo;
+
+  document.getElementById("banderaA").textContent = partido.equipoA.bandera;
+  document.getElementById("equipoA").textContent = partido.equipoA.nombre;
+
+  document.getElementById("banderaB").textContent = partido.equipoB.bandera;
+  document.getElementById("equipoB").textContent = partido.equipoB.nombre;
+
+  document.getElementById("dado").textContent = "🎲";
+  document.getElementById("resultado").textContent = "Esperando tirada...";
+
+  document.getElementById("botonTirar").classList.remove("hidden");
+  document.getElementById("botonSiguiente").classList.add("hidden");
+
+  partidoYaJugado = false;
 }
 
 function tirarDado() {
+  if (partidoYaJugado) {
+    return;
+  }
+
+  const partido = fixture[partidoActual];
+
   const dado = Math.floor(Math.random() * 6) + 1;
   let resultado = "";
 
   if (dado <= 2) {
-    resultado = "Ganó Equipo A";
+    resultado = `Ganó ${partido.equipoA.nombre}`;
   } else if (dado <= 4) {
     resultado = "Empate";
   } else {
-    resultado = "Ganó Equipo B";
+    resultado = `Ganó ${partido.equipoB.nombre}`;
   }
 
   document.getElementById("dado").textContent = "🎲 " + dado;
   document.getElementById("resultado").textContent = resultado;
+
+  document.getElementById("botonTirar").classList.add("hidden");
+  document.getElementById("botonSiguiente").classList.remove("hidden");
+
+  partidoYaJugado = true;
+}
+
+function siguientePartido() {
+  partidoActual++;
+
+  if (partidoActual >= fixture.length) {
+    document.getElementById("numeroPartido").textContent = "Fin de la fase de prueba";
+    document.getElementById("nombreGrupo").textContent = "Grupo terminado";
+    document.getElementById("resultado").textContent = "Ya se jugaron todos los partidos.";
+    document.getElementById("dado").textContent = "🏆";
+    document.getElementById("botonTirar").classList.add("hidden");
+    document.getElementById("botonSiguiente").classList.add("hidden");
+    return;
+  }
+
+  mostrarPartidoActual();
+}
+
+function volverInicio() {
+  document.getElementById("pantalla-juego").classList.add("hidden");
+  document.getElementById("pantalla-inicio").classList.remove("hidden");
 }
