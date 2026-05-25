@@ -357,4 +357,13 @@ tr:last-child td {
   font-weight: bold;
   white-space: nowrap;
 }
+  /* CLASIFICADOS */
+
+tr.clasificado {
+  background: rgba(34, 197, 94, 0.18);
+}
+
+tr.clasificado td {
+  color: #dcfce7;
+}
 }
