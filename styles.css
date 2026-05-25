@@ -315,4 +315,46 @@ td {
   text-align: left;
   font-weight: bold;
 }
+  /* MEJORA VISUAL DE TABLA */
+
+.tabla-contenedor {
+  margin-top: 16px;
+  overflow-x: auto;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 16px;
+  padding: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 8px;
+  font-size: 14px;
+  text-align: center;
+}
+
+th {
+  color: #fde68a;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+td {
+  color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.equipo-tabla {
+  text-align: left;
+  font-weight: bold;
+  white-space: nowrap;
+}
 }
