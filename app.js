@@ -27,6 +27,7 @@ let faseActual = "grupos";
 let clasificados = [];
 let campeon = null;
 let animandoDado = false;
+let penalesFinal = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   generarFormularioJugadores();
@@ -72,6 +73,7 @@ function iniciarJuego() {
   partidoYaJugado = false;
   faseActual = "grupos";
   animandoDado = false;
+  penalesFinal = null;
 
   document.getElementById("botonNuevoTorneo").classList.add("hidden");
   document.getElementById("panelTablas").classList.remove("hidden");
@@ -110,10 +112,11 @@ function iniciarJuego() {
 
   mostrarResumenJugadores();
   mostrarTablasGrupos();
-  mostrarPartidoActual();
 
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
+
+  avanzarHastaPartidoManual();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -193,8 +196,114 @@ function mostrarResumenJugadores() {
   }).join("");
 }
 
-function mostrarPartidoActual() {
+function avanzarHastaPartidoManual() {
+  const resumenAutomaticos = [];
+
+  while (true) {
+    if (faseActual === "grupos" && partidoActual >= fixture.length) {
+      finalizarFaseGrupos(resumenAutomaticos);
+      return;
+    }
+
+    if (faseActual === "cuartos" && partidoActual >= fixture.length) {
+      armarSemifinales();
+      continue;
+    }
+
+    if (faseActual === "semifinales" && partidoActual >= fixture.length) {
+      armarFinal();
+      continue;
+    }
+
+    const partido = fixture[partidoActual];
+
+    if (!partido) {
+      return;
+    }
+
+    if (partidoDebeSerManual(partido)) {
+      mostrarPartidoActual(resumenAutomaticos);
+      return;
+    }
+
+    const resumen = simularPartidoAutomatico(partido);
+    resumenAutomaticos.push(resumen);
+    partidoActual++;
+  }
+}
+
+function partidoDebeSerManual(partido) {
+  if (partido.fase === "Final") {
+    return true;
+  }
+
+  return partidoTieneJugadorHumano(partido);
+}
+
+function partidoTieneJugadorHumano(partido) {
+  return jugadores.some(jugador => {
+    return jugador.seleccion === partido.equipoA.nombre ||
+           jugador.seleccion === partido.equipoB.nombre;
+  });
+}
+
+function simularPartidoAutomatico(partido) {
+  if (partido.fase === "Grupo") {
+    return simularPartidoGrupoAutomatico(partido);
+  }
+
+  return simularPartidoEliminatorioAutomatico(partido);
+}
+
+function simularPartidoGrupoAutomatico(partido) {
+  const dado = tirarDadoSimple();
+
+  const equipoA = buscarEquipoEnGrupo(partido.grupo, partido.equipoA.nombre);
+  const equipoB = buscarEquipoEnGrupo(partido.grupo, partido.equipoB.nombre);
+
+  let resumen = "";
+
+  if (dado <= 2) {
+    registrarVictoria(equipoA, equipoB);
+    resumen = `${partido.grupo}: ${equipoA.bandera} ${equipoA.nombre} venció a ${equipoB.bandera} ${equipoB.nombre}`;
+  } else if (dado <= 4) {
+    registrarEmpate(equipoA, equipoB);
+    resumen = `${partido.grupo}: ${equipoA.bandera} ${equipoA.nombre} empató con ${equipoB.bandera} ${equipoB.nombre}`;
+  } else {
+    registrarVictoria(equipoB, equipoA);
+    resumen = `${partido.grupo}: ${equipoB.bandera} ${equipoB.nombre} venció a ${equipoA.bandera} ${equipoA.nombre}`;
+  }
+
+  mostrarTablasGrupos();
+
+  return resumen;
+}
+
+function simularPartidoEliminatorioAutomatico(partido) {
+  const dado = tirarDadoSimple();
+  let ganador = null;
+  let resumen = "";
+
+  if (dado <= 2) {
+    ganador = partido.equipoA;
+    resumen = `${partido.fase}: ganó ${ganador.bandera} ${ganador.nombre}`;
+  } else if (dado <= 4) {
+    const penales = resolverPenales(partido.equipoA, partido.equipoB);
+    ganador = penales.ganador;
+    resumen = `${partido.fase}: empate y ganó por penales ${ganador.bandera} ${ganador.nombre}`;
+  } else {
+    ganador = partido.equipoB;
+    resumen = `${partido.fase}: ganó ${ganador.bandera} ${ganador.nombre}`;
+  }
+
+  partido.ganador = ganador;
+  return resumen;
+}
+
+function mostrarPartidoActual(resumenAutomaticos = []) {
   const partido = fixture[partidoActual];
+
+  mostrarTablasGrupos();
 
   document.getElementById("numeroPartido").textContent =
     `${partido.fase} - Partido ${partidoActual + 1} de ${fixture.length}`;
@@ -208,17 +317,34 @@ function mostrarPartidoActual() {
   document.getElementById("equipoB").textContent = partido.equipoB.nombre;
 
   document.getElementById("dado").textContent = "🎲";
-  document.getElementById("resultado").textContent = "Esperando tirada...";
 
-  document.getElementById("botonTirar").classList.remove("hidden");
-  document.getElementById("botonTirar").disabled = false;
-  document.getElementById("botonTirar").textContent = "Tirar dado";
+  if (resumenAutomaticos.length > 0) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="auto-box">
+        <strong>Se simularon ${resumenAutomaticos.length} partido(s) automáticos.</strong>
+        <p>Ahora juega una selección elegida por un jugador.</p>
+      </div>
+    `;
+  } else {
+    document.getElementById("resultado").textContent = "Esperando tirada...";
+  }
+
+  const boton = document.getElementById("botonTirar");
+  boton.classList.remove("hidden");
+  boton.disabled = false;
+  boton.textContent = "Tirar dado";
+
   document.getElementById("botonSiguiente").classList.add("hidden");
 
   partidoYaJugado = false;
 }
 
 async function tirarDado() {
+  if (penalesFinal) {
+    await tirarPenalFinalManual();
+    return;
+  }
+
   if (partidoYaJugado || animandoDado) {
     return;
   }
@@ -237,8 +363,11 @@ async function tirarDado() {
     jugarPartidoEliminatorio();
   }
 
-  boton.disabled = false;
-  boton.textContent = "Tirar dado";
+  if (!penalesFinal) {
+    boton.disabled = false;
+    boton.textContent = "Tirar dado";
+  }
+
   animandoDado = false;
 }
 
@@ -307,6 +436,11 @@ function jugarPartidoEliminatorio() {
     ganador = partido.equipoA;
     htmlResultado = `🎲 Salió ${dado}<br>Ganó ${ganador.bandera} ${ganador.nombre}`;
   } else if (dado <= 4) {
+    if (partido.fase === "Final") {
+      iniciarPenalesFinalManual(partido, dado);
+      return;
+    }
+
     const penales = resolverPenales(partido.equipoA, partido.equipoB);
     ganador = penales.ganador;
     htmlResultado = `
@@ -343,23 +477,182 @@ function jugarPartidoEliminatorio() {
   partidoYaJugado = true;
 }
 
-function siguientePartido() {
-  partidoActual++;
+function iniciarPenalesFinalManual(partido, dadoFinal) {
+  penalesFinal = {
+    partido,
+    equipoA: partido.equipoA,
+    equipoB: partido.equipoB,
+    tirosA: [],
+    tirosB: [],
+    turno: "A",
+    etapa: "cinco",
+    ronda: 1
+  };
 
-  if (faseActual === "grupos" && partidoActual >= fixture.length) {
-    finalizarFaseGrupos();
-    return;
-  }
+  document.getElementById("dado").textContent = "🎲 " + dadoFinal;
+  document.getElementById("resultado").innerHTML = `
+    Empate en la final.<br>
+    Ahora los penales son manuales.
+    ${renderPenalesFinal()}
+  `;
 
-  if (faseActual !== "grupos" && partidoActual >= fixture.length) {
-    avanzarEliminatoria();
-    return;
-  }
+  document.getElementById("botonTirar").classList.remove("hidden");
+  document.getElementById("botonTirar").disabled = false;
+  document.getElementById("botonTirar").textContent =
+    `Patea ${penalesFinal.equipoA.bandera} ${penalesFinal.equipoA.nombre}`;
 
-  mostrarPartidoActual();
+  document.getElementById("botonSiguiente").classList.add("hidden");
+  partidoYaJugado = false;
 }
 
-function finalizarFaseGrupos() {
+async function tirarPenalFinalManual() {
+  if (animandoDado) {
+    return;
+  }
+
+  animandoDado = true;
+
+  const boton = document.getElementById("botonTirar");
+  boton.disabled = true;
+  boton.textContent = "Pateando...";
+
+  await animarDado();
+
+  patearPenalFinal();
+
+  if (penalesFinal) {
+    boton.disabled = false;
+  }
+
+  animandoDado = false;
+}
+
+function patearPenalFinal() {
+  const dado = tirarDadoSimple();
+  const gol = dado % 2 === 0;
+  const tiro = { dado, gol };
+
+  if (penalesFinal.turno === "A") {
+    penalesFinal.tirosA.push(tiro);
+    penalesFinal.turno = "B";
+  } else {
+    penalesFinal.tirosB.push(tiro);
+
+    if (penalesFinal.etapa === "cinco") {
+      if (penalesFinal.tirosB.length >= 5) {
+        const golesA = contarGoles(penalesFinal.tirosA);
+        const golesB = contarGoles(penalesFinal.tirosB);
+
+        if (golesA > golesB) {
+          finalizarPenalesFinal(penalesFinal.equipoA);
+          return;
+        }
+
+        if (golesB > golesA) {
+          finalizarPenalesFinal(penalesFinal.equipoB);
+          return;
+        }
+
+        penalesFinal.etapa = "muerte";
+        penalesFinal.ronda = 1;
+      }
+
+      penalesFinal.turno = "A";
+    } else {
+      const ultimoA = penalesFinal.tirosA[penalesFinal.tirosA.length - 1];
+      const ultimoB = penalesFinal.tirosB[penalesFinal.tirosB.length - 1];
+
+      if (ultimoA.gol && !ultimoB.gol) {
+        finalizarPenalesFinal(penalesFinal.equipoA);
+        return;
+      }
+
+      if (ultimoB.gol && !ultimoA.gol) {
+        finalizarPenalesFinal(penalesFinal.equipoB);
+        return;
+      }
+
+      penalesFinal.ronda++;
+      penalesFinal.turno = "A";
+    }
+  }
+
+  actualizarVistaPenalesFinal();
+}
+
+function actualizarVistaPenalesFinal() {
+  document.getElementById("resultado").innerHTML = renderPenalesFinal();
+
+  const equipoTurno = penalesFinal.turno === "A"
+    ? penalesFinal.equipoA
+    : penalesFinal.equipoB;
+
+  document.getElementById("botonTirar").textContent =
+    `Patea ${equipoTurno.bandera} ${equipoTurno.nombre}`;
+}
+
+function renderPenalesFinal() {
+  const golesA = contarGoles(penalesFinal.tirosA);
+  const golesB = contarGoles(penalesFinal.tirosB);
+
+  const textoEtapa = penalesFinal.etapa === "cinco"
+    ? "Serie de 5 penales"
+    : "Muerte súbita";
+
+  const equipoTurno = penalesFinal.turno === "A"
+    ? penalesFinal.equipoA
+    : penalesFinal.equipoB;
+
+  return `
+    <div class="penales-box">
+      <p><strong>${textoEtapa}</strong></p>
+      <p>
+        <strong>${penalesFinal.equipoA.bandera} ${penalesFinal.equipoA.nombre}</strong>:
+        ${formatearPenales(penalesFinal.tirosA)} = ${golesA}
+      </p>
+      <p>
+        <strong>${penalesFinal.equipoB.bandera} ${penalesFinal.equipoB.nombre}</strong>:
+        ${formatearPenales(penalesFinal.tirosB)} = ${golesB}
+      </p>
+      <p class="turno-penal">
+        Turno de ${equipoTurno.bandera} ${equipoTurno.nombre}
+      </p>
+    </div>
+  `;
+}
+
+function finalizarPenalesFinal(ganador) {
+  penalesFinal.partido.ganador = ganador;
+  campeon = ganador;
+
+  document.getElementById("dado").textContent = "🏆";
+  document.getElementById("resultado").innerHTML = `
+    ${renderPenalesFinal()}
+    <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
+  `;
+
+  document.getElementById("botonTirar").classList.add("hidden");
+  document.getElementById("botonSiguiente").classList.add("hidden");
+  document.getElementById("botonNuevoTorneo").classList.remove("hidden");
+  document.getElementById("panelTablas").classList.add("hidden");
+
+  penalesFinal = null;
+  partidoYaJugado = true;
+  faseActual = "finalizada";
+}
+
+function siguientePartido() {
+  if (faseActual === "esperando-cuartos") {
+    armarCuartos();
+    avanzarHastaPartidoManual();
+    return;
+  }
+
+  partidoActual++;
+  avanzarHastaPartidoManual();
+}
+
+function finalizarFaseGrupos(resumenAutomaticos = []) {
   clasificados = [];
 
   grupos.forEach(grupo => {
@@ -376,31 +669,19 @@ function finalizarFaseGrupos() {
   document.getElementById("numeroPartido").textContent = "Fin de la fase de grupos";
   document.getElementById("nombreGrupo").textContent = "Clasificados definidos";
   document.getElementById("dado").textContent = "🏆";
+
+  const textoAuto = resumenAutomaticos.length > 0
+    ? `Se simularon ${resumenAutomaticos.length} partido(s) automáticos. `
+    : "";
+
   document.getElementById("resultado").textContent =
-    "Ya están los 8 clasificados. Ahora empiezan los cuartos de final.";
+    `${textoAuto}Ya están los 8 clasificados. Ahora empiezan los cuartos de final.`;
 
   document.getElementById("botonTirar").classList.add("hidden");
   document.getElementById("botonSiguiente").classList.remove("hidden");
   document.getElementById("botonSiguiente").textContent = "Comenzar cuartos de final";
 
   faseActual = "esperando-cuartos";
-}
-
-function avanzarEliminatoria() {
-  if (faseActual === "esperando-cuartos") {
-    armarCuartos();
-    return;
-  }
-
-  if (faseActual === "cuartos") {
-    armarSemifinales();
-    return;
-  }
-
-  if (faseActual === "semifinales") {
-    armarFinal();
-    return;
-  }
 }
 
 function armarCuartos() {
@@ -415,7 +696,6 @@ function armarCuartos() {
   ];
 
   document.getElementById("botonSiguiente").textContent = "Siguiente partido";
-  mostrarPartidoActual();
 }
 
 function armarSemifinales() {
@@ -428,8 +708,6 @@ function armarSemifinales() {
     { fase: "Semifinales", grupo: "Semifinal 1", equipoA: ganadoresCuartos[0], equipoB: ganadoresCuartos[1] },
     { fase: "Semifinales", grupo: "Semifinal 2", equipoA: ganadoresCuartos[2], equipoB: ganadoresCuartos[3] }
   ];
-
-  mostrarPartidoActual();
 }
 
 function armarFinal() {
@@ -441,8 +719,6 @@ function armarFinal() {
   fixture = [
     { fase: "Final", grupo: "Gran Final", equipoA: ganadoresSemis[0], equipoB: ganadoresSemis[1] }
   ];
-
-  mostrarPartidoActual();
 }
 
 function buscarEquipoEnGrupo(nombreGrupo, nombreEquipo) {
@@ -643,6 +919,10 @@ function contarGoles(tiros) {
 }
 
 function formatearPenales(tiros) {
+  if (tiros.length === 0) {
+    return "—";
+  }
+
   return tiros.map(tiro => {
     return tiro.gol ? `⚽(${tiro.dado})` : `❌(${tiro.dado})`;
   }).join(" ");
