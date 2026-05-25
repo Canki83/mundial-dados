@@ -26,6 +26,7 @@ let partidoYaJugado = false;
 let faseActual = "grupos";
 let clasificados = [];
 let campeon = null;
+let animandoDado = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   generarFormularioJugadores();
