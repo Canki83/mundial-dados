@@ -15,6 +15,8 @@ const selecciones = [
 
 let jugadores = [];
 let fixture = [];
+let equiposDelGrupo = [];
+let tabla = {};
 let partidoActual = 0;
 let partidoYaJugado = false;
 
@@ -38,7 +40,7 @@ function generarFormularioJugadores() {
         <h3>Jugador ${i}</h3>
 
         <label>Nombre</label>
-        <input type="text" id="nombreJugador${i}" placeholder="Ej: Martín">
+        <input type="text" id="nombreJugador${i}" placeholder="Ej: Bauti">
 
         <label>Selección</label>
         <select id="seleccionJugador${i}">
@@ -79,18 +81,21 @@ function iniciarJuego() {
   }
 
   armarFixtureDePrueba();
+  inicializarTabla();
+
   partidoActual = 0;
   partidoYaJugado = false;
 
   mostrarResumenJugadores();
   mostrarPartidoActual();
+  mostrarTabla();
 
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
 }
 
 function armarFixtureDePrueba() {
-  const equiposDelGrupo = [];
+  equiposDelGrupo = [];
 
   jugadores.forEach(jugador => {
     equiposDelGrupo.push({
@@ -115,6 +120,22 @@ function armarFixtureDePrueba() {
     { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[3] },
     { grupo: "Grupo A", equipoA: equiposDelGrupo[1], equipoB: equiposDelGrupo[2] }
   ];
+}
+
+function inicializarTabla() {
+  tabla = {};
+
+  equiposDelGrupo.forEach(equipo => {
+    tabla[equipo.nombre] = {
+      nombre: equipo.nombre,
+      bandera: equipo.bandera,
+      pj: 0,
+      g: 0,
+      e: 0,
+      p: 0,
+      pts: 0
+    };
+  });
 }
 
 function mostrarResumenJugadores() {
@@ -165,19 +186,64 @@ function tirarDado() {
 
   if (dado <= 2) {
     resultado = `Ganó ${partido.equipoA.nombre}`;
+    registrarVictoria(partido.equipoA.nombre, partido.equipoB.nombre);
   } else if (dado <= 4) {
     resultado = "Empate";
+    registrarEmpate(partido.equipoA.nombre, partido.equipoB.nombre);
   } else {
     resultado = `Ganó ${partido.equipoB.nombre}`;
+    registrarVictoria(partido.equipoB.nombre, partido.equipoA.nombre);
   }
 
   document.getElementById("dado").textContent = "🎲 " + dado;
   document.getElementById("resultado").textContent = resultado;
 
+  mostrarTabla();
+
   document.getElementById("botonTirar").classList.add("hidden");
   document.getElementById("botonSiguiente").classList.remove("hidden");
 
   partidoYaJugado = true;
+}
+
+function registrarVictoria(ganador, perdedor) {
+  tabla[ganador].pj++;
+  tabla[ganador].g++;
+  tabla[ganador].pts += 3;
+
+  tabla[perdedor].pj++;
+  tabla[perdedor].p++;
+}
+
+function registrarEmpate(equipoA, equipoB) {
+  tabla[equipoA].pj++;
+  tabla[equipoA].e++;
+  tabla[equipoA].pts += 1;
+
+  tabla[equipoB].pj++;
+  tabla[equipoB].e++;
+  tabla[equipoB].pts += 1;
+}
+
+function mostrarTabla() {
+  const cuerpoTabla = document.getElementById("tablaPosiciones");
+
+  const equiposOrdenados = Object.values(tabla).sort((a, b) => {
+    return b.pts - a.pts;
+  });
+
+  cuerpoTabla.innerHTML = equiposOrdenados.map(equipo => {
+    return `
+      <tr>
+        <td class="equipo-tabla">${equipo.bandera} ${equipo.nombre}</td>
+        <td>${equipo.pj}</td>
+        <td>${equipo.g}</td>
+        <td>${equipo.e}</td>
+        <td>${equipo.p}</td>
+        <td><strong>${equipo.pts}</strong></td>
+      </tr>
+    `;
+  }).join("");
 }
 
 function siguientePartido() {
