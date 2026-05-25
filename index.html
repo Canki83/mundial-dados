@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mundial de Dados</title>
+</head>
+<body>
+  <h1>⚽ Mundial de Dados 🎲</h1>
+  <p>La app está funcionando.</p>
+
+  <button onclick="tirarDado()">Tirar dado</button>
+
+  <h2 id="resultado">Esperando tirada...</h2>
+
+  <script>
+    function tirarDado() {
+      const dado = Math.floor(Math.random() * 6) + 1;
+      let resultado = "";
+
+      if (dado <= 2) {
+        resultado = "Ganó Equipo A";
+      } else if (dado <= 4) {
+        resultado = "Empate";
+      } else {
+        resultado = "Ganó Equipo B";
+      }
+
+      document.getElementById("resultado").textContent =
+        "Salió " + dado + " - " + resultado;
+    }
+  </script>
+</body>
+</html>
