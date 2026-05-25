@@ -71,11 +71,13 @@ function iniciarJuego() {
   partidoActual = 0;
   partidoYaJugado = false;
   faseActual = "grupos";
+  animandoDado = false;
 
   document.getElementById("botonNuevoTorneo").classList.add("hidden");
   document.getElementById("panelTablas").classList.remove("hidden");
   document.getElementById("panelClasificados").classList.add("hidden");
   document.getElementById("clasificados").innerHTML = "";
+  document.getElementById("botonSiguiente").textContent = "Siguiente partido";
 
   for (let i = 1; i <= cantidad; i++) {
     const nombre = document.getElementById(`nombreJugador${i}`).value.trim();
@@ -209,22 +211,60 @@ function mostrarPartidoActual() {
   document.getElementById("resultado").textContent = "Esperando tirada...";
 
   document.getElementById("botonTirar").classList.remove("hidden");
+  document.getElementById("botonTirar").disabled = false;
+  document.getElementById("botonTirar").textContent = "Tirar dado";
   document.getElementById("botonSiguiente").classList.add("hidden");
 
   partidoYaJugado = false;
 }
 
-function tirarDado() {
-  if (partidoYaJugado) {
+async function tirarDado() {
+  if (partidoYaJugado || animandoDado) {
     return;
   }
+
+  animandoDado = true;
+
+  const boton = document.getElementById("botonTirar");
+  boton.disabled = true;
+  boton.textContent = "Girando dado...";
+
+  await animarDado();
 
   if (faseActual === "grupos") {
     jugarPartidoGrupo();
-    return;
+  } else {
+    jugarPartidoEliminatorio();
   }
 
-  jugarPartidoEliminatorio();
+  boton.disabled = false;
+  boton.textContent = "Tirar dado";
+  animandoDado = false;
+}
+
+function animarDado() {
+  return new Promise(resolve => {
+    const dadoElemento = document.getElementById("dado");
+    const caras = ["🎲 1", "🎲 2", "🎲 3", "🎲 4", "🎲 5", "🎲 6"];
+
+    let vueltas = 0;
+
+    dadoElemento.classList.add("dado-animado");
+    dadoElemento.textContent = "🎲";
+
+    const intervalo = setInterval(() => {
+      const caraAleatoria = caras[Math.floor(Math.random() * caras.length)];
+      dadoElemento.textContent = caraAleatoria;
+
+      vueltas++;
+
+      if (vueltas >= 14) {
+        clearInterval(intervalo);
+        dadoElemento.classList.remove("dado-animado");
+        resolve();
+      }
+    }, 70);
+  });
 }
 
 function jugarPartidoGrupo() {
@@ -551,8 +591,8 @@ function resolverPenales(equipoA, equipoB) {
   const tirosA = patearCincoPenales();
   const tirosB = patearCincoPenales();
 
-  let golesA = contarGoles(tirosA);
-  let golesB = contarGoles(tirosB);
+  const golesA = contarGoles(tirosA);
+  const golesB = contarGoles(tirosB);
 
   let html = `
     <div class="penales-box">
