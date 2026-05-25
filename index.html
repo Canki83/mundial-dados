@@ -42,26 +42,35 @@
         <h2 class="seccion-titulo">Jugadores</h2>
         <div id="resumenJugadores" class="resumen-jugadores"></div>
 
+        <div class="info-partido">
+          <p id="numeroPartido">Partido 1 de 6</p>
+          <h2 id="nombreGrupo">Grupo A</h2>
+        </div>
+
         <div class="partido">
           <div class="equipo">
-            <div class="bandera">🇦🇷</div>
-            <h2>Equipo A</h2>
+            <div id="banderaA" class="bandera">🇦🇷</div>
+            <h2 id="equipoA">Equipo A</h2>
           </div>
 
           <div class="versus">VS</div>
 
           <div class="equipo">
-            <div class="bandera">🇧🇷</div>
-            <h2>Equipo B</h2>
+            <div id="banderaB" class="bandera">🇧🇷</div>
+            <h2 id="equipoB">Equipo B</h2>
           </div>
         </div>
 
-        <button onclick="tirarDado()">Tirar dado</button>
+        <button id="botonTirar" onclick="tirarDado()">Tirar dado</button>
 
         <div class="resultado">
           <p id="dado">🎲</p>
           <h2 id="resultado">Esperando tirada...</h2>
         </div>
+
+        <button id="botonSiguiente" class="boton-secundario hidden" onclick="siguientePartido()">
+          Siguiente partido
+        </button>
 
         <div class="reglas">
           <p><strong>1-2:</strong> gana Equipo A</p>
