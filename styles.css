@@ -447,4 +447,23 @@ button:disabled {
   opacity: 0.75;
   cursor: not-allowed;
 }
+  /* PARTIDOS AUTOMATICOS */
+
+.auto-box {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.auto-box p {
+  margin: 8px 0 0;
+  color: #dbeafe;
+}
+
+/* TURNO DE PENAL MANUAL */
+
+.turno-penal {
+  margin-top: 12px !important;
+  color: #fde68a !important;
+  font-weight: bold;
+}
 }
