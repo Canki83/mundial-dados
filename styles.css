@@ -414,4 +414,37 @@ tr.clasificado td {
 #botonNuevoTorneo:active {
   box-shadow: 0 4px 0 #15803d;
 }
+  /* ANIMACION DEL DADO */
+
+.dado-animado {
+  display: inline-block;
+  animation: girarDado 0.7s ease-in-out;
+}
+
+@keyframes girarDado {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  25% {
+    transform: rotate(90deg) scale(1.25);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(0.95);
+  }
+
+  75% {
+    transform: rotate(270deg) scale(1.25);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+button:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
 }
