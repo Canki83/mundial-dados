@@ -17,35 +17,60 @@
       </div>
 
       <p class="subtitulo">
-        Simulador simple de partidos con dados.
+        Elegí jugadores, selecciones y simulá partidos con dados.
       </p>
 
-      <div class="partido">
-        <div class="equipo">
-          <div class="bandera">🇦🇷</div>
-          <h2>Equipo A</h2>
+      <!-- PANTALLA DE INICIO -->
+      <section id="pantalla-inicio">
+        <div class="formulario">
+          <label for="cantidadJugadores">Cantidad de jugadores</label>
+          <select id="cantidadJugadores" onchange="generarFormularioJugadores()">
+            <option value="1">1 jugador</option>
+            <option value="2">2 jugadores</option>
+            <option value="3">3 jugadores</option>
+            <option value="4">4 jugadores</option>
+          </select>
         </div>
 
-        <div class="versus">VS</div>
+        <div id="jugadoresContainer"></div>
 
-        <div class="equipo">
-          <div class="bandera">🇧🇷</div>
-          <h2>Equipo B</h2>
+        <button onclick="iniciarJuego()">Comenzar Mundial</button>
+      </section>
+
+      <!-- PANTALLA DE JUEGO -->
+      <section id="pantalla-juego" class="hidden">
+        <h2 class="seccion-titulo">Jugadores</h2>
+        <div id="resumenJugadores" class="resumen-jugadores"></div>
+
+        <div class="partido">
+          <div class="equipo">
+            <div class="bandera">🇦🇷</div>
+            <h2>Equipo A</h2>
+          </div>
+
+          <div class="versus">VS</div>
+
+          <div class="equipo">
+            <div class="bandera">🇧🇷</div>
+            <h2>Equipo B</h2>
+          </div>
         </div>
-      </div>
 
-      <button onclick="tirarDado()">Tirar dado</button>
+        <button onclick="tirarDado()">Tirar dado</button>
 
-      <div class="resultado">
-        <p id="dado">🎲</p>
-        <h2 id="resultado">Esperando tirada...</h2>
-      </div>
+        <div class="resultado">
+          <p id="dado">🎲</p>
+          <h2 id="resultado">Esperando tirada...</h2>
+        </div>
 
-      <div class="reglas">
-        <p><strong>1-2:</strong> gana Equipo A</p>
-        <p><strong>3-4:</strong> empate</p>
-        <p><strong>5-6:</strong> gana Equipo B</p>
-      </div>
+        <div class="reglas">
+          <p><strong>1-2:</strong> gana Equipo A</p>
+          <p><strong>3-4:</strong> empate</p>
+          <p><strong>5-6:</strong> gana Equipo B</p>
+        </div>
+
+        <button class="boton-secundario" onclick="volverInicio()">Volver al inicio</button>
+      </section>
     </section>
   </main>
 
