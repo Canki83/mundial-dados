@@ -366,4 +366,27 @@ tr.clasificado {
 tr.clasificado td {
   color: #dcfce7;
 }
+  /* FINAL Y PENALES */
+
+.penales-box {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.10);
+  font-size: 15px;
+  font-weight: normal;
+  line-height: 1.5;
+}
+
+.penales-box p {
+  margin: 8px 0;
+}
+
+.campeon {
+  display: block;
+  margin-top: 16px;
+  color: #fde68a;
+  font-size: 24px;
+  font-weight: bold;
+}
 }
