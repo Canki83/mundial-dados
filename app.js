@@ -1,4 +1,4 @@
-const selecciones = [
+const seleccionesBase = [
   { nombre: "Argentina", bandera: "🇦🇷" },
   { nombre: "Brasil", bandera: "🇧🇷" },
   { nombre: "Uruguay", bandera: "🇺🇾" },
@@ -10,19 +10,22 @@ const selecciones = [
   { nombre: "Portugal", bandera: "🇵🇹" },
   { nombre: "México", bandera: "🇲🇽" },
   { nombre: "Estados Unidos", bandera: "🇺🇸" },
-  { nombre: "Japón", bandera: "🇯🇵" }
+  { nombre: "Japón", bandera: "🇯🇵" },
+  { nombre: "Marruecos", bandera: "🇲🇦" },
+  { nombre: "Colombia", bandera: "🇨🇴" },
+  { nombre: "Croacia", bandera: "🇭🇷" },
+  { nombre: "Países Bajos", bandera: "🇳🇱" }
 ];
 
 let jugadores = [];
+let equiposTorneo = [];
+let grupos = [];
 let fixture = [];
-let equiposDelGrupo = [];
-let tabla = {};
 let partidoActual = 0;
 let partidoYaJugado = false;
-let ordenFinal = [];
-let grupoFinalizado = false;
-let modoJuego = "grupo";
-let finalPrueba = null;
+let faseActual = "grupos";
+let clasificados = [];
+let campeon = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   generarFormularioJugadores();
@@ -35,7 +38,7 @@ function generarFormularioJugadores() {
   contenedor.innerHTML = "";
 
   for (let i = 1; i <= cantidad; i++) {
-    const opcionesSelecciones = selecciones.map((seleccion, index) => {
+    const opcionesSelecciones = seleccionesBase.map((seleccion, index) => {
       return `<option value="${index}">${seleccion.bandera} ${seleccion.nombre}</option>`;
     }).join("");
 
@@ -57,18 +60,26 @@ function generarFormularioJugadores() {
 
 function iniciarJuego() {
   const cantidad = Number(document.getElementById("cantidadJugadores").value);
-  jugadores = [];
-  ordenFinal = [];
-  grupoFinalizado = false;
-  modoJuego = "grupo";
-  finalPrueba = null;
 
-  document.getElementById("botonFinalPrueba").classList.add("hidden");
+  jugadores = [];
+  equiposTorneo = [];
+  grupos = [];
+  fixture = [];
+  clasificados = [];
+  campeon = null;
+  partidoActual = 0;
+  partidoYaJugado = false;
+  faseActual = "grupos";
+
+  document.getElementById("botonNuevoTorneo").classList.add("hidden");
+  document.getElementById("panelTablas").classList.remove("hidden");
+  document.getElementById("panelClasificados").classList.add("hidden");
+  document.getElementById("clasificados").innerHTML = "";
 
   for (let i = 1; i <= cantidad; i++) {
     const nombre = document.getElementById(`nombreJugador${i}`).value.trim();
     const seleccionIndex = Number(document.getElementById(`seleccionJugador${i}`).value);
-    const seleccion = selecciones[seleccionIndex];
+    const seleccion = seleccionesBase[seleccionIndex];
 
     if (nombre === "") {
       alert(`Falta poner el nombre del Jugador ${i}`);
@@ -76,7 +87,7 @@ function iniciarJuego() {
     }
 
     jugadores.push({
-      nombre: nombre,
+      nombre,
       seleccion: seleccion.nombre,
       bandera: seleccion.bandera
     });
@@ -90,61 +101,78 @@ function iniciarJuego() {
     return;
   }
 
-  armarFixtureDePrueba();
-  inicializarTabla();
-
-  partidoActual = 0;
-  partidoYaJugado = false;
+  armarEquiposTorneo();
+  armarGrupos();
+  armarFixtureGrupos();
 
   mostrarResumenJugadores();
+  mostrarTablasGrupos();
   mostrarPartidoActual();
-  mostrarTabla();
 
   document.getElementById("pantalla-inicio").classList.add("hidden");
   document.getElementById("pantalla-juego").classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function armarFixtureDePrueba() {
-  equiposDelGrupo = [];
+function armarEquiposTorneo() {
+  equiposTorneo = [];
 
   jugadores.forEach(jugador => {
-    equiposDelGrupo.push({
+    equiposTorneo.push({
       nombre: jugador.seleccion,
       bandera: jugador.bandera
     });
   });
 
-  selecciones.forEach(seleccion => {
-    const yaEsta = equiposDelGrupo.some(equipo => equipo.nombre === seleccion.nombre);
+  seleccionesBase.forEach(seleccion => {
+    const yaEsta = equiposTorneo.some(equipo => equipo.nombre === seleccion.nombre);
 
-    if (!yaEsta && equiposDelGrupo.length < 4) {
-      equiposDelGrupo.push(seleccion);
+    if (!yaEsta && equiposTorneo.length < 16) {
+      equiposTorneo.push({
+        nombre: seleccion.nombre,
+        bandera: seleccion.bandera
+      });
     }
   });
-
-  fixture = [
-    { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[1] },
-    { grupo: "Grupo A", equipoA: equiposDelGrupo[2], equipoB: equiposDelGrupo[3] },
-    { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[2] },
-    { grupo: "Grupo A", equipoA: equiposDelGrupo[1], equipoB: equiposDelGrupo[3] },
-    { grupo: "Grupo A", equipoA: equiposDelGrupo[0], equipoB: equiposDelGrupo[3] },
-    { grupo: "Grupo A", equipoA: equiposDelGrupo[1], equipoB: equiposDelGrupo[2] }
-  ];
 }
 
-function inicializarTabla() {
-  tabla = {};
+function armarGrupos() {
+  const nombresGrupos = ["Grupo A", "Grupo B", "Grupo C", "Grupo D"];
+  grupos = [];
 
-  equiposDelGrupo.forEach(equipo => {
-    tabla[equipo.nombre] = {
-      nombre: equipo.nombre,
-      bandera: equipo.bandera,
-      pj: 0,
-      g: 0,
-      e: 0,
-      p: 0,
-      pts: 0
-    };
+  for (let i = 0; i < 4; i++) {
+    const equiposGrupo = equiposTorneo.slice(i * 4, i * 4 + 4).map(equipo => {
+      return {
+        ...equipo,
+        pj: 0,
+        g: 0,
+        e: 0,
+        p: 0,
+        pts: 0
+      };
+    });
+
+    grupos.push({
+      nombre: nombresGrupos[i],
+      equipos: equiposGrupo,
+      ordenFinal: []
+    });
+  }
+}
+
+function armarFixtureGrupos() {
+  fixture = [];
+
+  grupos.forEach(grupo => {
+    const e = grupo.equipos;
+
+    fixture.push({ fase: "Grupo", grupo: grupo.nombre, equipoA: e[0], equipoB: e[1] });
+    fixture.push({ fase: "Grupo", grupo: grupo.nombre, equipoA: e[2], equipoB: e[3] });
+    fixture.push({ fase: "Grupo", grupo: grupo.nombre, equipoA: e[0], equipoB: e[2] });
+    fixture.push({ fase: "Grupo", grupo: grupo.nombre, equipoA: e[1], equipoB: e[3] });
+    fixture.push({ fase: "Grupo", grupo: grupo.nombre, equipoA: e[0], equipoB: e[3] });
+    fixture.push({ fase: "Grupo", grupo: grupo.nombre, equipoA: e[1], equipoB: e[2] });
   });
 }
 
@@ -166,7 +194,7 @@ function mostrarPartidoActual() {
   const partido = fixture[partidoActual];
 
   document.getElementById("numeroPartido").textContent =
-    `Partido ${partidoActual + 1} de ${fixture.length}`;
+    `${partido.fase} - Partido ${partidoActual + 1} de ${fixture.length}`;
 
   document.getElementById("nombreGrupo").textContent = partido.grupo;
 
@@ -186,34 +214,41 @@ function mostrarPartidoActual() {
 }
 
 function tirarDado() {
-  if (modoJuego === "final") {
-    tirarDadoFinal();
-    return;
-  }
-
   if (partidoYaJugado) {
     return;
   }
 
+  if (faseActual === "grupos") {
+    jugarPartidoGrupo();
+    return;
+  }
+
+  jugarPartidoEliminatorio();
+}
+
+function jugarPartidoGrupo() {
   const partido = fixture[partidoActual];
   const dado = tirarDadoSimple();
   let resultado = "";
 
+  const equipoA = buscarEquipoEnGrupo(partido.grupo, partido.equipoA.nombre);
+  const equipoB = buscarEquipoEnGrupo(partido.grupo, partido.equipoB.nombre);
+
   if (dado <= 2) {
-    resultado = `Ganó ${partido.equipoA.nombre}`;
-    registrarVictoria(partido.equipoA.nombre, partido.equipoB.nombre);
+    resultado = `Ganó ${equipoA.nombre}`;
+    registrarVictoria(equipoA, equipoB);
   } else if (dado <= 4) {
     resultado = "Empate";
-    registrarEmpate(partido.equipoA.nombre, partido.equipoB.nombre);
+    registrarEmpate(equipoA, equipoB);
   } else {
-    resultado = `Ganó ${partido.equipoB.nombre}`;
-    registrarVictoria(partido.equipoB.nombre, partido.equipoA.nombre);
+    resultado = `Ganó ${equipoB.nombre}`;
+    registrarVictoria(equipoB, equipoA);
   }
 
   document.getElementById("dado").textContent = "🎲 " + dado;
   document.getElementById("resultado").textContent = resultado;
 
-  mostrarTabla();
+  mostrarTablasGrupos();
 
   document.getElementById("botonTirar").classList.add("hidden");
   document.getElementById("botonSiguiente").classList.remove("hidden");
@@ -221,127 +256,264 @@ function tirarDado() {
   partidoYaJugado = true;
 }
 
-function registrarVictoria(ganador, perdedor) {
-  tabla[ganador].pj++;
-  tabla[ganador].g++;
-  tabla[ganador].pts += 3;
+function jugarPartidoEliminatorio() {
+  const partido = fixture[partidoActual];
+  const dado = tirarDadoSimple();
+  let ganador = null;
+  let htmlResultado = "";
 
-  tabla[perdedor].pj++;
-  tabla[perdedor].p++;
-}
-
-function registrarEmpate(equipoA, equipoB) {
-  tabla[equipoA].pj++;
-  tabla[equipoA].e++;
-  tabla[equipoA].pts += 1;
-
-  tabla[equipoB].pj++;
-  tabla[equipoB].e++;
-  tabla[equipoB].pts += 1;
-}
-
-function mostrarTabla() {
-  const cuerpoTabla = document.getElementById("tablaPosiciones");
-
-  const equiposOrdenados = grupoFinalizado
-    ? ordenFinal
-    : Object.values(tabla).sort((a, b) => b.pts - a.pts);
-
-  cuerpoTabla.innerHTML = equiposOrdenados.map((equipo, index) => {
-    const clasificado = grupoFinalizado && index < 2 ? "clasificado" : "";
-    const marca = grupoFinalizado && index < 2 ? "✅ " : "";
-
-    return `
-      <tr class="${clasificado}">
-        <td class="equipo-tabla">${marca}${equipo.bandera} ${equipo.nombre}</td>
-        <td>${equipo.pj}</td>
-        <td>${equipo.g}</td>
-        <td>${equipo.e}</td>
-        <td>${equipo.p}</td>
-        <td><strong>${equipo.pts}</strong></td>
-      </tr>
+  if (dado <= 2) {
+    ganador = partido.equipoA;
+    htmlResultado = `🎲 Salió ${dado}<br>Ganó ${ganador.bandera} ${ganador.nombre}`;
+  } else if (dado <= 4) {
+    const penales = resolverPenales(partido.equipoA, partido.equipoB);
+    ganador = penales.ganador;
+    htmlResultado = `
+      🎲 Salió ${dado}<br>
+      Empate. Definen por penales.
+      ${penales.html}
+      Ganó ${ganador.bandera} ${ganador.nombre}
     `;
-  }).join("");
+  } else {
+    ganador = partido.equipoB;
+    htmlResultado = `🎲 Salió ${dado}<br>Ganó ${ganador.bandera} ${ganador.nombre}`;
+  }
+
+  partido.ganador = ganador;
+
+  if (partido.fase === "Final") {
+    campeon = ganador;
+    htmlResultado += `<span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>`;
+  }
+
+  document.getElementById("dado").textContent = partido.fase === "Final" ? "🏆" : "🎲 " + dado;
+  document.getElementById("resultado").innerHTML = htmlResultado;
+
+  document.getElementById("botonTirar").classList.add("hidden");
+
+  if (partido.fase === "Final") {
+    document.getElementById("botonSiguiente").classList.add("hidden");
+    document.getElementById("botonNuevoTorneo").classList.remove("hidden");
+    document.getElementById("panelTablas").classList.add("hidden");
+  } else {
+    document.getElementById("botonSiguiente").classList.remove("hidden");
+  }
+
+  partidoYaJugado = true;
 }
 
 function siguientePartido() {
   partidoActual++;
 
-  if (partidoActual >= fixture.length) {
-    finalizarGrupo();
+  if (faseActual === "grupos" && partidoActual >= fixture.length) {
+    finalizarFaseGrupos();
+    return;
+  }
+
+  if (faseActual !== "grupos" && partidoActual >= fixture.length) {
+    avanzarEliminatoria();
     return;
   }
 
   mostrarPartidoActual();
 }
 
-function finalizarGrupo() {
-  grupoFinalizado = true;
+function finalizarFaseGrupos() {
+  clasificados = [];
 
-  const resultadoDesempate = ordenarTablaConDesempatePorDado();
+  grupos.forEach(grupo => {
+    const resultadoOrden = ordenarGrupoPorPuntosYDados(grupo);
+    grupo.ordenFinal = resultadoOrden.orden;
 
-  ordenFinal = resultadoDesempate.orden;
+    clasificados.push(grupo.ordenFinal[0]);
+    clasificados.push(grupo.ordenFinal[1]);
+  });
+
+  mostrarTablasGrupos();
+  mostrarClasificados();
 
   document.getElementById("numeroPartido").textContent = "Fin de la fase de grupos";
-  document.getElementById("nombreGrupo").textContent = "Grupo terminado";
+  document.getElementById("nombreGrupo").textContent = "Clasificados definidos";
   document.getElementById("dado").textContent = "🏆";
-
-  if (resultadoDesempate.huboDesempate) {
-    document.getElementById("resultado").innerHTML =
-      "Tabla definida por puntos y desempate con dado.<br>" + resultadoDesempate.texto;
-  } else {
-    document.getElementById("resultado").textContent =
-      "Tabla definida por puntos. No hizo falta desempate.";
-  }
+  document.getElementById("resultado").textContent =
+    "Ya están los 8 clasificados. Ahora empiezan los cuartos de final.";
 
   document.getElementById("botonTirar").classList.add("hidden");
-  document.getElementById("botonSiguiente").classList.add("hidden");
-  document.getElementById("botonFinalPrueba").classList.remove("hidden");
+  document.getElementById("botonSiguiente").classList.remove("hidden");
+  document.getElementById("botonSiguiente").textContent = "Comenzar cuartos de final";
 
-  mostrarTabla();
+  faseActual = "esperando-cuartos";
 }
 
-function ordenarTablaConDesempatePorDado() {
-  const equipos = Object.values(tabla);
-  const gruposPorPuntos = agruparPor(equipos, equipo => equipo.pts);
+function avanzarEliminatoria() {
+  if (faseActual === "esperando-cuartos") {
+    armarCuartos();
+    return;
+  }
+
+  if (faseActual === "cuartos") {
+    armarSemifinales();
+    return;
+  }
+
+  if (faseActual === "semifinales") {
+    armarFinal();
+    return;
+  }
+}
+
+function armarCuartos() {
+  faseActual = "cuartos";
+  partidoActual = 0;
+
+  fixture = [
+    { fase: "Cuartos", grupo: "Cuarto 1", equipoA: clasificados[0], equipoB: clasificados[3] },
+    { fase: "Cuartos", grupo: "Cuarto 2", equipoA: clasificados[2], equipoB: clasificados[1] },
+    { fase: "Cuartos", grupo: "Cuarto 3", equipoA: clasificados[4], equipoB: clasificados[7] },
+    { fase: "Cuartos", grupo: "Cuarto 4", equipoA: clasificados[6], equipoB: clasificados[5] }
+  ];
+
+  document.getElementById("botonSiguiente").textContent = "Siguiente partido";
+  mostrarPartidoActual();
+}
+
+function armarSemifinales() {
+  faseActual = "semifinales";
+  partidoActual = 0;
+
+  const ganadoresCuartos = fixture.map(partido => partido.ganador);
+
+  fixture = [
+    { fase: "Semifinales", grupo: "Semifinal 1", equipoA: ganadoresCuartos[0], equipoB: ganadoresCuartos[1] },
+    { fase: "Semifinales", grupo: "Semifinal 2", equipoA: ganadoresCuartos[2], equipoB: ganadoresCuartos[3] }
+  ];
+
+  mostrarPartidoActual();
+}
+
+function armarFinal() {
+  faseActual = "final";
+  partidoActual = 0;
+
+  const ganadoresSemis = fixture.map(partido => partido.ganador);
+
+  fixture = [
+    { fase: "Final", grupo: "Gran Final", equipoA: ganadoresSemis[0], equipoB: ganadoresSemis[1] }
+  ];
+
+  mostrarPartidoActual();
+}
+
+function buscarEquipoEnGrupo(nombreGrupo, nombreEquipo) {
+  const grupo = grupos.find(g => g.nombre === nombreGrupo);
+  return grupo.equipos.find(equipo => equipo.nombre === nombreEquipo);
+}
+
+function registrarVictoria(ganador, perdedor) {
+  ganador.pj++;
+  ganador.g++;
+  ganador.pts += 3;
+
+  perdedor.pj++;
+  perdedor.p++;
+}
+
+function registrarEmpate(equipoA, equipoB) {
+  equipoA.pj++;
+  equipoA.e++;
+  equipoA.pts += 1;
+
+  equipoB.pj++;
+  equipoB.e++;
+  equipoB.pts += 1;
+}
+
+function mostrarTablasGrupos() {
+  const contenedor = document.getElementById("tablasGrupos");
+
+  contenedor.innerHTML = grupos.map(grupo => {
+    const equiposOrdenados = grupo.ordenFinal.length > 0
+      ? grupo.ordenFinal
+      : [...grupo.equipos].sort((a, b) => b.pts - a.pts);
+
+    const filas = equiposOrdenados.map((equipo, index) => {
+      const clasificado = grupo.ordenFinal.length > 0 && index < 2 ? "clasificado" : "";
+      const marca = grupo.ordenFinal.length > 0 && index < 2 ? "✅ " : "";
+
+      return `
+        <tr class="${clasificado}">
+          <td class="equipo-tabla">${marca}${equipo.bandera} ${equipo.nombre}</td>
+          <td>${equipo.pj}</td>
+          <td>${equipo.g}</td>
+          <td>${equipo.e}</td>
+          <td>${equipo.p}</td>
+          <td><strong>${equipo.pts}</strong></td>
+        </tr>
+      `;
+    }).join("");
+
+    return `
+      <div class="grupo-card">
+        <h3>${grupo.nombre}</h3>
+        <div class="tabla-contenedor">
+          <table>
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th>PJ</th>
+                <th>G</th>
+                <th>E</th>
+                <th>P</th>
+                <th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function mostrarClasificados() {
+  const panel = document.getElementById("panelClasificados");
+  const contenedor = document.getElementById("clasificados");
+
+  panel.classList.remove("hidden");
+
+  contenedor.innerHTML = clasificados.map((equipo, index) => {
+    return `
+      <div class="jugador-card">
+        <span>${equipo.bandera}</span>
+        <strong>${equipo.nombre}</strong>
+        <small>Clasificado ${index + 1}</small>
+      </div>
+    `;
+  }).join("");
+}
+
+function ordenarGrupoPorPuntosYDados(grupo) {
+  const gruposPorPuntos = agruparPor(grupo.equipos, equipo => equipo.pts);
 
   const puntosOrdenados = Object.keys(gruposPorPuntos)
     .map(Number)
     .sort((a, b) => b - a);
 
-  let ordenFinalCalculado = [];
-  let huboDesempate = false;
-  let texto = "";
+  let ordenFinal = [];
 
   puntosOrdenados.forEach(puntos => {
-    const grupo = gruposPorPuntos[puntos];
+    const equiposEmpatados = gruposPorPuntos[puntos];
 
-    if (grupo.length === 1) {
-      ordenFinalCalculado.push(grupo[0]);
+    if (equiposEmpatados.length === 1) {
+      ordenFinal.push(equiposEmpatados[0]);
     } else {
-      huboDesempate = true;
-      const resultado = desempatarGrupoPorDado(grupo);
-
-      texto += `<br><strong>Empate en ${puntos} puntos:</strong>`;
-      texto += resultado.texto;
-
-      ordenFinalCalculado.push(...resultado.orden);
+      const resultadoDesempate = desempatarEquiposConDado(equiposEmpatados);
+      ordenFinal.push(...resultadoDesempate);
     }
   });
 
   return {
-    orden: ordenFinalCalculado,
-    huboDesempate,
-    texto
-  };
-}
-
-function desempatarGrupoPorDado(equipos) {
-  const resultado = desempatarEquiposConDado(equipos);
-
-  return {
-    orden: resultado.orden,
-    texto: resultado.texto
+    orden: ordenFinal
   };
 }
 
@@ -352,8 +524,6 @@ function desempatarEquiposConDado(equipos) {
       dado: tirarDadoSimple()
     };
   });
-
-  let texto = `<br>${tiradas.map(t => `${t.equipo.bandera} ${t.equipo.nombre}: 🎲 ${t.dado}`).join(" | ")}`;
 
   const gruposPorDado = agruparPor(tiradas, item => item.dado);
   const dadosOrdenados = Object.keys(gruposPorDado)
@@ -369,95 +539,11 @@ function desempatarEquiposConDado(equipos) {
       orden.push(grupo[0].equipo);
     } else {
       const equiposEmpatados = grupo.map(item => item.equipo);
-
-      texto += `<br>Hubo nuevo empate. Tiran de nuevo: ${equiposEmpatados.map(e => `${e.bandera} ${e.nombre}`).join(", ")}`;
-
-      const desempate = desempatarEquiposConDado(equiposEmpatados);
-
-      texto += desempate.texto;
-      orden.push(...desempate.orden);
+      orden.push(...desempatarEquiposConDado(equiposEmpatados));
     }
   });
 
-  return {
-    orden,
-    texto
-  };
-}
-
-function iniciarFinalPrueba() {
-  if (!grupoFinalizado || ordenFinal.length < 2) {
-    alert("Primero tiene que terminar la fase de grupos.");
-    return;
-  }
-
-  modoJuego = "final";
-  partidoYaJugado = false;
-
-  finalPrueba = {
-    equipoA: ordenFinal[0],
-    equipoB: ordenFinal[1]
-  };
-
-  document.getElementById("numeroPartido").textContent = "Final de prueba";
-  document.getElementById("nombreGrupo").textContent = "Mata-mata";
-
-  document.getElementById("banderaA").textContent = finalPrueba.equipoA.bandera;
-  document.getElementById("equipoA").textContent = finalPrueba.equipoA.nombre;
-
-  document.getElementById("banderaB").textContent = finalPrueba.equipoB.bandera;
-  document.getElementById("equipoB").textContent = finalPrueba.equipoB.nombre;
-
-  document.getElementById("dado").textContent = "🎲";
-  document.getElementById("resultado").textContent = "Final lista. Tirar dado para definir.";
-
-  document.getElementById("botonTirar").classList.remove("hidden");
-  document.getElementById("botonSiguiente").classList.add("hidden");
-  document.getElementById("botonFinalPrueba").classList.add("hidden");
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function tirarDadoFinal() {
-  if (partidoYaJugado) {
-    return;
-  }
-
-  const dado = tirarDadoSimple();
-  let ganador = null;
-  let htmlResultado = "";
-
-  if (dado <= 2) {
-    ganador = finalPrueba.equipoA;
-    htmlResultado = `
-      🎲 Salió ${dado}<br>
-      Ganó ${ganador.bandera} ${ganador.nombre}<br>
-      <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
-    `;
-  } else if (dado <= 4) {
-    const penales = resolverPenales(finalPrueba.equipoA, finalPrueba.equipoB);
-    ganador = penales.ganador;
-
-    htmlResultado = `
-      🎲 Salió ${dado}<br>
-      Empate en la final. Definen por penales.
-      ${penales.html}
-      <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
-    `;
-  } else {
-    ganador = finalPrueba.equipoB;
-    htmlResultado = `
-      🎲 Salió ${dado}<br>
-      Ganó ${ganador.bandera} ${ganador.nombre}<br>
-      <span class="campeon">🏆 Campeón: ${ganador.bandera} ${ganador.nombre}</span>
-    `;
-  }
-
-  document.getElementById("dado").textContent = "🏆";
-  document.getElementById("resultado").innerHTML = htmlResultado;
-  document.getElementById("botonTirar").classList.add("hidden");
-
-  partidoYaJugado = true;
+  return orden;
 }
 
 function resolverPenales(equipoA, equipoB) {
@@ -576,4 +662,5 @@ function agruparPor(lista, obtenerClave) {
 function volverInicio() {
   document.getElementById("pantalla-juego").classList.add("hidden");
   document.getElementById("pantalla-inicio").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
