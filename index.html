@@ -4,14 +4,50 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mundial de Dados</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>⚽ Mundial de Dados 🎲</h1>
-  <p>La app está funcionando.</p>
 
-  <button onclick="tirarDado()">Tirar dado</button>
+  <main class="app">
+    <section class="card">
+      <div class="titulo">
+        <span class="pelota">⚽</span>
+        <h1>Mundial de Dados</h1>
+        <span class="dado">🎲</span>
+      </div>
 
-  <h2 id="resultado">Esperando tirada...</h2>
+      <p class="subtitulo">
+        Simulador simple de partidos con dados.
+      </p>
+
+      <div class="partido">
+        <div class="equipo">
+          <div class="bandera">🇦🇷</div>
+          <h2>Equipo A</h2>
+        </div>
+
+        <div class="versus">VS</div>
+
+        <div class="equipo">
+          <div class="bandera">🇧🇷</div>
+          <h2>Equipo B</h2>
+        </div>
+      </div>
+
+      <button onclick="tirarDado()">Tirar dado</button>
+
+      <div class="resultado">
+        <p id="dado">🎲</p>
+        <h2 id="resultado">Esperando tirada...</h2>
+      </div>
+
+      <div class="reglas">
+        <p><strong>1-2:</strong> gana Equipo A</p>
+        <p><strong>3-4:</strong> empate</p>
+        <p><strong>5-6:</strong> gana Equipo B</p>
+      </div>
+    </section>
+  </main>
 
   <script>
     function tirarDado() {
@@ -26,9 +62,10 @@
         resultado = "Ganó Equipo B";
       }
 
-      document.getElementById("resultado").textContent =
-        "Salió " + dado + " - " + resultado;
+      document.getElementById("dado").textContent = "🎲 " + dado;
+      document.getElementById("resultado").textContent = resultado;
     }
   </script>
+
 </body>
 </html>
